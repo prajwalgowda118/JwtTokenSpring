@@ -1,6 +1,7 @@
 package com.scaler.springsecurity.jwtspring.Controller;
 
 
+import com.scaler.springsecurity.jwtspring.Model.Role;
 import lombok.*;
 
 @Getter
@@ -15,4 +16,6 @@ public class RegisterRequest {
     private String lastName;
     private String email;
     private String password;
+
+    private Role role;
 }

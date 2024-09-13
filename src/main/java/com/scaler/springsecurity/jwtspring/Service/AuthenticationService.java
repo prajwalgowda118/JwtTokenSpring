@@ -54,7 +54,7 @@ public class AuthenticationService {
                 .lastName(req.getLastName())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
-                .role(Role.USER)
+                .role(req.getRole())
                 .build();
        userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);
