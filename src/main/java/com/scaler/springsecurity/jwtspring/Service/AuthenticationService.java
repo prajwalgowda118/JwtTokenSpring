@@ -1,6 +1,7 @@
 package com.scaler.springsecurity.jwtspring.Service;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scaler.springsecurity.jwtspring.Config.JwtService;
 import com.scaler.springsecurity.jwtspring.Controller.AuthenticationRequest;
 import com.scaler.springsecurity.jwtspring.Controller.AuthenticationResponse;
@@ -11,14 +12,22 @@ import com.scaler.springsecurity.jwtspring.Model.TokenType;
 import com.scaler.springsecurity.jwtspring.Model.User;
 import com.scaler.springsecurity.jwtspring.Repository.TokenRepository;
 import com.scaler.springsecurity.jwtspring.Repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.token.TokenService;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 
 @Service
 public class AuthenticationService {
@@ -45,14 +54,16 @@ public class AuthenticationService {
                 .lastName(req.getLastName())
                 .email(req.getEmail())
                 .password(passwordEncoder.encode(req.getPassword()))
-                .role(Role.ROLE_USER)
+                .role(Role.USER)
                 .build();
        userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);
-
+        var refreshToken = jwtService.generateRefreshToken(user);
         extractedToken(jwtToken, user);
 
-        return new AuthenticationResponse(jwtToken);
+        return AuthenticationResponse.builder()
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken).build();
 
     }
 
@@ -78,9 +89,12 @@ public class AuthenticationService {
         var user =userRepository.findByEmail(req.getEmail()).orElseThrow(null);
 
         var jwtToken = jwtService.generateToken(user);
+        var refreshToken = jwtService.generateRefreshToken(user);
         revokeToken(user);
         extractedToken(jwtToken, user);
-        return new AuthenticationResponse(jwtToken);
+        return AuthenticationResponse.builder()
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken).build();
 
         //return new AuthenticationResponse(jwtService.generateToken(user));
 
@@ -101,4 +115,50 @@ public class AuthenticationService {
         tokenRepository.saveAll(validUserTokens);
     }
 
+    public void refreshToken(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+        final String authHeader = req.getHeader(HttpHeaders.AUTHORIZATION);
+        final String refreshToken;
+        final String userEmail;
+
+        if (authHeader == null || !authHeader.startsWith("Bearer "))
+        {
+            //filterChain.doFilter(request, response);
+            return;
+        }
+        refreshToken = authHeader.substring(7);
+        userEmail = jwtService.extractUserName(refreshToken);
+
+        if(userEmail!=null){
+
+            var user= this.userRepository.findByEmail(userEmail).orElseThrow();
+            /*var isTokenValid= tokenRepository.findByToken(refreshToken)
+                    .map(t -> !t.isExpired() && !t.isRevoked())
+                    .orElse(false);
+            */
+            if(jwtService.isTokenValid(refreshToken, user) )
+            {
+                var accessToken = jwtService.generateToken(user);
+                revokeToken(user);
+                extractedToken(accessToken, user);
+                var authResponse=AuthenticationResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .build();
+
+                new ObjectMapper().writeValue(resp.getOutputStream(),authResponse);
+               /* UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
+                        = new UsernamePasswordAuthenticationToken
+                        (userDetails,
+                                null,
+                                userDetails.getAuthorities());
+
+                usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource()
+                        .buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);*/
+            }
+
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.scaler.springsecurity.jwtspring.Controller;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -11,6 +12,10 @@ import lombok.*;
 @ToString
 public class AuthenticationResponse {
 
-    private String token;
+    @JsonProperty("access_token")
+    private String accessToken;
+
+    @JsonProperty("refresh_token")
+    private String refreshToken;
 
 }
