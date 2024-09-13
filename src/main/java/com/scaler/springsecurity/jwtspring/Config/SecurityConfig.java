@@ -19,11 +19,11 @@ import static com.scaler.springsecurity.jwtspring.Model.Permission.*;
 import static com.scaler.springsecurity.jwtspring.Model.Role.ADMIN;
 import static com.scaler.springsecurity.jwtspring.Model.Role.MANAGER;
 
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity
-
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -34,26 +34,28 @@ public class SecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests()
-                .requestMatchers("/api/v1/auth/**").permitAll()  // Ensure /register is publicly accessible
-                .requestMatchers("/h2-console/**").permitAll()
-               /*.requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(),MANAGER.name())
-                .requestMatchers("/api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(),MANAGER_READ.name())
-                .requestMatchers("/api/v1/management/**").hasAnyAuthority(ADMIN_UPDATE.name(),MANAGER_UPDATE.name())
-                .requestMatchers("/api/v1/management/**").hasAnyAuthority(ADMIN_DELETE.name(),MANAGER_DELETE.name())
-                .requestMatchers("/api/v1/management/**").hasAnyAuthority(ADMIN_CREATE.name(),MANAGER_CREATE.name())
-
-                .requestMatchers("/api/v1/admin/**").hasRole(ADMIN.name())
-                .requestMatchers("/api/v1/admin/**").hasAnyAuthority(ADMIN_READ.name())
-                .requestMatchers("/api/v1/admin/**").hasAnyAuthority(ADMIN_UPDATE.name())
-                .requestMatchers("/api/v1/admin/**").hasAnyAuthority(ADMIN_DELETE.name())
-                .requestMatchers("/api/v1/admin/**").hasAnyAuthority(ADMIN_CREATE.name())*/
-                .anyRequest().authenticated() // All other requests require authentication
+                .requestMatchers("/api/v1/auth/**",
+                        "/v2/api-docs",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-resources",
+                        "/swagger-resources/**",
+                        "/configuration/ui",
+                        "/configuration/security",
+                        "/swagger-ui/**",
+                        "/webjars/**",
+                        "/swagger-ui.html").permitAll()  // Public access
+                .requestMatchers("/h2-console/**").permitAll()   // Allow access to H2 console
+                // Swagger UI
+                //.requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
+               // .requestMatchers("/api/v1/admin/**").hasRole(ADMIN.name())
+                .anyRequest().authenticated()  // Require authentication for all other requests
                 .and()
                 .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Use stateless session management for JWT
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Stateless sessions for JWT
                 .and()
-                .authenticationProvider(authenticationProvider)  // Ensure you have defined an authenticationProvider bean
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)// Add JWT authentication filter before UsernamePasswordAuthenticationFilter
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout()
                 .logoutUrl("/api/v1/auth/logout")
                 .addLogoutHandler(logoutHandler)
@@ -63,6 +65,7 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-
 }
+
+
+

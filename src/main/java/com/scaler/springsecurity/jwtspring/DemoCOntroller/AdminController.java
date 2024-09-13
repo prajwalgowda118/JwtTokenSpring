@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 public class AdminController {
 
-
     @GetMapping
     @PreAuthorize("hasAuthority('admin:read')")
     public String get() {
@@ -33,4 +32,6 @@ public class AdminController {
     public String delete() {
         return "delete:: Admin controller";
     }
+
+
 }
